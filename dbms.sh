@@ -35,9 +35,9 @@ function CreateSingleLineBreak() {
 function RegexMatch() {
 
 	[[ $1 =~ ^[0-9\.\!\@\#\$\%\^\&\*\(\)\?\<\>\=\-\{\}\'\"\/\|\~\,\;\+\:\_]\w* || 
-						$1 == *" "* ||
+						$1 =~ [\ ]+ ||
 						$1 =~ [[:space:]]+ ||
-						$1 == *[\.\!\@\#\$\%\^\&\*\(\)\?\<\>\=\{\}\'\"\/\|\~\,\;\+\:]* ]]
+						$1 == *[\.\!\@\#\$\%\^\&\*\(\)\?\<\>\=\{\}\'\"\/\|\~\,\;\+\:\_\-]* ]]
 
 }
 
@@ -63,6 +63,7 @@ function MainMenu() {
 				exit
 			else
 				CreateDoubleLineBreak 'Please select a valide choice between available choices above'	
+				MainMenu
 			fi		
 		done	
 }
@@ -82,7 +83,7 @@ function CreateDatabase() {
 				1) Not starts with numbers
 				2) Not starts with special character
 				3) Not contains spaces
-				4) Not contain special characters except - or _
+				4) Not contain special characters
 			'
 			MainMenu
 		fi
@@ -118,7 +119,7 @@ function ShowDatabases() {
 		CreateDoubleLineBreak $content 
 		MainMenu
 	else
-		CreateDoubleLineBreak 'No Databases Yet!'
+		CreateDoubleLineBreak 'No Databases Yet!. Try to add more'
 		MainMenu
 	fi
 }
@@ -166,7 +167,7 @@ function DatabaseDetailsMenu() {
 
 
 	PS3='Please select a choice: '
-	select choice in 'Show_Existing_Tables' 'Create_New_Table' 'Drop_Table' 		'Rename_Table' 'Select_Data_From_Table' 'Insert_Data_Into_Table' 'Delete_Data_From_Table' 		'Update_Table' 'Get_Back_To_Main_Menu' 'Exit'
+	select choice in 'Show_Existing_Tables' 'Create_New_Table' 'Drop_Table' 'Rename_Table' 'Select_Data_From_Table' 'Insert_Data_Into_Table' 'Delete_Data_From_Table' 'Update_Table' 'Get_Back_To_Main_Menu' 'Exit'
 	
 	do
 	
@@ -211,64 +212,80 @@ function CreateNewTable() {
 			
   		read -p 'Number of columns: ' columns_number
   		
-			counter=1
-			field_sep="|"
-			record_sep="\n"
-			primary_key=""
-			metadata="Field"$field_sep"Type"$field_sep"key"
-			while [ $counter -le $columns_number ]
-				do
-					read -p "Name of Column No. $counter: " column_name
-					echo -e "Type of Column $counter: "
-					PS3='Enter type of field: '
-					select choice in "int" "str"
-					do
-						case $choice in
-						  int ) column_type="int";break;;
-						  str ) column_type="str";break;;
-						  * ) echo "Wrong Choice" ;;
-						esac
-					done
-					if [[ $primary_key == "" ]]; then
-						echo -e "Make it Primary Key? "
-						PS3='Make your choice: '
-						select choice in "yes" "no"
-						do
-						  case $choice in
-						    yes ) primary_key="PK";
-						    metadata+=$record_sep$column_name$field_sep$column_type$field_sep$primary_key
-						    break;;
-						    no )
-						    metadata+=$record_sep$column_name$field_sep$column_type$field_sep""
-						    break;;
-						    * ) echo "Wrong Choice" ;;
-						  esac
-						done
-					else
-						metadata+=$record_sep$column_name$field_sep$column_type$field_sep""
-					fi
-					if [[ $counter == $columns_number ]]; then
-						temp=$temp$column_name
-					else
-						temp=$temp$column_name$field_sep
-					fi
-					((counter++))
-				done
-			
-				touch .$table_name
-				echo  -e $metadata  >> .$table_name
-				touch $table_name
-				echo  -e $temp >> $table_name
 
-				CreateDoubleLineBreak 'The table has been created'
-				DatabaseDetailsMenu
-	
+				if [[ $columns_number =~ ^[1-9]+$ ]]; then
+					counter=1
+					field_sep="|"
+					record_sep="\n"
+					primary_key=""
+					metadata="Field"$field_sep"Type"$field_sep"key"
+					while [ $counter -le $columns_number ]
+						do
+							read -p "Name of Column No. $counter: " column_name
+							
+							if ! RegexMatch $column_name; then
+							echo -e "Type of Column $counter: "
+							PS3='Enter type of field: '
+							select choice in "int" "str"
+							do
+								case $choice in
+									int ) column_type="int";break;;
+									str ) column_type="str";break;;
+									* ) echo "Wrong Choice" ;;
+								esac
+							done
+							if [[ $primary_key == "" ]]; then
+								echo -e "Make it Primary Key? "
+								PS3='Make your choice: '
+								select choice in "yes" "no"
+								do
+									case $choice in
+										yes ) primary_key="PK";
+										metadata+=$record_sep$column_name$field_sep$column_type$field_sep$primary_key
+										break;;
+										no )
+										metadata+=$record_sep$column_name$field_sep$column_type$field_sep""
+										break;;
+										* ) echo "Wrong Choice" ;;
+									esac
+								done
+							else
+								metadata+=$record_sep$column_name$field_sep$column_type$field_sep""
+							fi
+							#if [[ $counter == $columns_number ]]; then
+								#temp=$temp$column_name
+								#CreateDoubleLineBreak 'Columns number must be greater than 1'
+		    				#DatabaseDetailsMenu
+							#else
+								#temp=$temp$column_name$field_sep
+							#fi
+						temp+=$column_name$field_sep
+						else
+							CreateDoubleLineBreak 'Column name is NOT valid!'
+							DatabaseDetailsMenu							
+						fi
+						
+							((counter++))
+					done
+					
+						touch .$table_name
+						echo  -e $metadata  >> .$table_name
+						touch $table_name
+						echo  -e $temp >> $table_name
+
+						CreateDoubleLineBreak 'The table has been created'
+						DatabaseDetailsMenu
+
+				else
+					CreateDoubleLineBreak 'NOT a valid number!'
+					DatabaseDetailsMenu
+				fi		
 		else
 			CreateDoubleLineBreak 'Name is NOT valid!. Rules:
 				1) Not starts with numbers
 				2) Not starts with special character
 				3) Not contains spaces
-				4) Not contain special characters except - or _'
+				4) Not contain special characters'
 			DatabaseDetailsMenu
 		fi
 	else
@@ -282,7 +299,7 @@ function CreateNewTable() {
 function InsertDataIntoTable() {
 
 
-read -p 'Enter name of the table: ' table_name
+	read -p 'Enter name of the table: ' table_name
   if ! [[ -f $table_name ]]; then
     
 		CreateDoubleLineBreak "This table does not exist"
@@ -300,33 +317,24 @@ read -p 'Enter name of the table: ' table_name
 			column_type=$( awk 'BEGIN{FS="|"}{if(NR=='$i') print $2}' .$table_name)
 			column_key=$( awk 'BEGIN{FS="|"}{if(NR=='$i') print $3}' .$table_name)
 			
-			 #echo -e "$column_name ($column_type) = \c"
-       #read data
-       read -p "$column_name ($column_type) = " data
+			
+      read -p "$column_name ($column_type) = " data
 
 			# Data Validation
 			if [[ $column_type == "int" ]]; then
 			  while ! [[ $data =~ ^[0-9]+$ ]];
 			  	do
 					  echo "invalid datatype!"
-					  #echo -e "$column_name ($column_type) = \c"
-      			#read data
       			read -p "$column_name ($column_type) = " data
 				 done
 			fi
 
-			if [[ $column_type == "PK" ]]; then
-			  while true 
-			  	do
-					  if [[ $data =~ ^[`awk 'BEGIN{FS="|" ; ORS=" "}{if(NR != 1)print $(('$i'-1))}' $table_name`]$ ]]; then
-					    echo  "NOT a valid input for Primary Key that should be unique and not null!"
-					  else
-					    break;
-					  fi
-					  #echo -e "$column_name ($column_type) = \c"
-       			#read data
-       			read -p "$column_name ($column_type) = " data
-			  	done
+			if [[ $column_type == 'str' ]]; then
+				while ! [[ $data =~ ^[a-zA-Z]+$ ]]
+					do
+						echo 'Invalid datatype'
+						read -p "$column_name ($column_type) = " data
+					done
 			fi
 
 			#Set row
@@ -360,6 +368,7 @@ function DeleteDataFromTable() {
 		read -p 'Enter field name: ' field_name
 
 		field_id=$(awk 'BEGIN{FS="|"}{if(NR==1){for(i=1;i<=NF;i++){if($i=="'$field_name'") print i}}}' $table_name)
+		
 		if [[ $field_id == "" ]]; then
 		  CreateDoubleLineBreak "Field NOT found in $table_name table"
 		  DatabaseDetailsMenu
@@ -567,28 +576,11 @@ function ShowExistingTables() {
 		CreateDoubleLineBreak $content 
 		DatabaseDetailsMenu
 	else
-		CreateDoubleLineBreak 'No Tables Yet!'
+		CreateDoubleLineBreak 'No Tables Yet!. Try to add more'
 		DatabaseDetailsMenu
 	fi
 	
 }
-
-
-
-#function ShowTable() {
-
-#	read -p 'Enter name of the table: ' table_name
-#	
-#	if [[ -f $table_name ]]; then
-#		result=`cat -nE $table_name`
-#		CreateDoubleLineBreak $result
-#		DatabaseDetailsMenu
-#	else
-#		CreateDoubleLineBreak 'This table does not exists' 
-#		DatabaseDetailsMenu
-#	fi
-#} echo -e "Enter Table Name: \c"
-  
 
 
 function DropTable() {
@@ -624,7 +616,7 @@ function RenameTable() {
 				1) Not starts with numbers
 				2) Not starts with special character
 				3) Not contains spaces
-				4) Not contain special characters except - or _
+				4) Not contain special characters
 			'
 			DatabaseDetailsMenu
 		fi
